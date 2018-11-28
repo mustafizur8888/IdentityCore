@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
@@ -25,6 +21,7 @@ namespace PluralsightDemo
             services.AddMvc();
             services.AddIdentityCore<PluralsightUser>(options => { });
             services.AddScoped<IUserStore<PluralsightUser>, PluralsightUserStore>();
+            services.AddAuthentication().AddCookie("cookies", options => options.LoginPath = "/Home/Login");
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

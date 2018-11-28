@@ -1,6 +1,9 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using System.Reflection;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,9 +22,16 @@ namespace PluralsightDemo
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
-            services.AddIdentityCore<PluralsightUser>(options => { });
-            services.AddScoped<IUserStore<PluralsightUser>, PluralsightUserStore>();
-            services.AddAuthentication().AddCookie("cookies", options => options.LoginPath = "/Home/Login");
+            var connectionString = "Data Source=BS-173;Initial Catalog=PluralsightDemo.IdentityUser;trusted_connection=yes";
+            var migrationAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
+            services.AddDbContext<PluralsightUserDbContext>(opt => opt.UseSqlServer(connectionString,
+                sql => sql.MigrationsAssembly(migrationAssembly)));
+            services.AddIdentity<PluralsightUser, IdentityRole>(options => { }).AddEntityFrameworkStores<PluralsightUserDbContext>();
+            services.AddScoped<IUserStore<PluralsightUser>, UserOnlyStore<PluralsightUser, PluralsightUserDbContext>>();
+            services.AddAuthentication("cookies").AddCookie("cookies", options => options.LoginPath = "/Home/Login");
+            services.AddScoped<IUserClaimsPrincipalFactory<PluralsightUser>,
+                PluralsightUserClaimsPrincipalFactory>();
+            services.ConfigureApplicationCookie(options => options.LoginPath = "/Home/Login");
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -1,8 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using PluralsightDemo.Models;
@@ -11,17 +12,25 @@ namespace PluralsightDemo.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly UserManager<PluralsightUser> _userManager;
+        private readonly UserManager<PluralsightUser> userManager;
+        private readonly IUserClaimsPrincipalFactory<PluralsightUser> _claimsPrincipalFactory;
+        private readonly SignInManager<PluralsightUser> _signInManager;
 
-        public HomeController(UserManager<PluralsightUser> userManager)
+        public HomeController(UserManager<PluralsightUser> userManager,
+            IUserClaimsPrincipalFactory<PluralsightUser> claimsPrincipalFactory,
+            SignInManager<PluralsightUser> signInManager)
         {
-            _userManager = userManager;
+            this.userManager = userManager;
+            _claimsPrincipalFactory = claimsPrincipalFactory;
+            _signInManager = signInManager;
         }
+
         public IActionResult Index()
         {
-            return View(); 
+            return View();
         }
 
+        [Authorize]
         public IActionResult About()
         {
             ViewData["Message"] = "Your application description page.";
@@ -42,7 +51,7 @@ namespace PluralsightDemo.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Register()
+        public IActionResult Register()
         {
             return View();
         }
@@ -53,22 +62,27 @@ namespace PluralsightDemo.Controllers
         {
             if (ModelState.IsValid)
             {
-                PluralsightUser pluralsightUser = await _userManager.FindByNameAsync(model.UserName);
-                if (pluralsightUser==null)
+                var user = await userManager.FindByNameAsync(model.UserName);
+
+                if (user == null)
                 {
-                    PluralsightUser user = new PluralsightUser()
+                    user = new PluralsightUser
                     {
                         Id = Guid.NewGuid().ToString(),
                         UserName = model.UserName
                     };
-                    var result = await _userManager.CreateAsync(user, model.Password);
-                    return View("Success");
+
+                    var result = await userManager.CreateAsync(user, model.Password);
                 }
+
+                return View("Success");
             }
+
             return View();
         }
+
         [HttpGet]
-        public async Task<IActionResult> Login()
+        public IActionResult Login()
         {
             return View();
         }
@@ -79,18 +93,16 @@ namespace PluralsightDemo.Controllers
         {
             if (ModelState.IsValid)
             {
-                PluralsightUser pluralsightUser = await _userManager.FindByNameAsync(model.UserName);
-                if (pluralsightUser==null)
+                var result =
+                      await _signInManager.PasswordSignInAsync(model.UserName, model.Password, false, false);
+                if (result.Succeeded)
                 {
-                    PluralsightUser user = new PluralsightUser()
-                    {
-                        Id = Guid.NewGuid().ToString(),
-                        UserName = model.UserName
-                    };
-                    var result = await _userManager.CreateAsync(user, model.Password);
-                    return View("Success");
+                    return RedirectToAction("Index");
                 }
+
+                ModelState.AddModelError("", "Invalid UserName or Password");
             }
+
             return View();
         }
     }

@@ -1,10 +1,16 @@
-﻿namespace PluralsightDemo
+﻿using Microsoft.AspNetCore.Identity;
+
+namespace PluralsightDemo
 {
-    public class PluralsightUser
+    public class PluralsightUser : IdentityUser
+    {
+        public string Local { get; set; } = "en-GB";
+        public string OrgId { get; set; }
+    }
+
+    public class Organization
     {
         public string Id { get; set; }
-        public string  UserName { get; set; }
-        public string NormalizedUserName { get; set;  }
-        public string PasswordHash { get; set; }
+        public string Name { get; set; }
     }
 }

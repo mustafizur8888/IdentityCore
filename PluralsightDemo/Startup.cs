@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -24,13 +25,28 @@ namespace PluralsightDemo
             services.AddMvc();
             var connectionString = "Data Source=BS-173;Initial Catalog=PluralsightDemo.IdentityUser;trusted_connection=yes";
             var migrationAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
+
             services.AddDbContext<PluralsightUserDbContext>(opt => opt.UseSqlServer(connectionString,
                 sql => sql.MigrationsAssembly(migrationAssembly)));
-            services.AddIdentity<PluralsightUser, IdentityRole>(options => { }).AddEntityFrameworkStores<PluralsightUserDbContext>();
+
+            services.AddIdentity<PluralsightUser,
+                IdentityRole>(options =>
+                {
+                    options.SignIn.RequireConfirmedEmail = true;
+                options.Tokens.EmailConfirmationTokenProvider = "emailconf";
+            }).AddEntityFrameworkStores<PluralsightUserDbContext>()
+                .AddDefaultTokenProviders()
+                .AddTokenProvider<EmailTokenProvider<PluralsightUser>>("emailconf");
+
             services.AddScoped<IUserStore<PluralsightUser>, UserOnlyStore<PluralsightUser, PluralsightUserDbContext>>();
-            services.AddAuthentication("cookies").AddCookie("cookies", options => options.LoginPath = "/Home/Login");
+
+         //   services.AddAuthentication("cookies").AddCookie("cookies", options => options.LoginPath = "/Home/Login");
+
             services.AddScoped<IUserClaimsPrincipalFactory<PluralsightUser>,
                 PluralsightUserClaimsPrincipalFactory>();
+
+            services.Configure<DataProtectionTokenProviderOptions>(options =>
+                options.TokenLifespan = TimeSpan.FromHours(3));
             services.ConfigureApplicationCookie(options => options.LoginPath = "/Home/Login");
         }
 
